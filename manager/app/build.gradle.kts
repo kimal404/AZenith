@@ -30,12 +30,17 @@ android {
         }
     }
 
+    val jksFile = file("azenith.jks")
+    val ksPwd = System.getenv("KS_PWD")
+
     signingConfigs {
-        create("release") {
-            storeFile = file("azenith.jks")
-            storePassword = System.getenv("KS_PWD")
-            keyAlias = "azenith_key"
-            keyPassword = System.getenv("KS_PWD")
+        if (jksFile.exists() && !ksPwd.isNullOrEmpty()) {
+            create("release") {
+                storeFile = jksFile
+                storePassword = ksPwd
+                keyAlias = "azenith_key"
+                keyPassword = ksPwd
+            }
         }
     }
     
@@ -48,7 +53,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             vcsInfo.include = false
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"), 
