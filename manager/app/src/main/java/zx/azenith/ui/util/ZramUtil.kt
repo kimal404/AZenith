@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -39,7 +39,7 @@ object ZramUtil {
 
     suspend fun getAlgorithms(): Pair<List<String>, String> = withContext(Dispatchers.IO) {
         val result = Shell.cmd("cat $ZRAM_ALGO").exec()
-        val defaultList = listOf("lz4", "zstd", "lzo")
+        val defaultList = listOf("lz4", "zstd", "lzo", "lzo-rle")
         var current = "lz4"
         if (result.isSuccess && result.out.isNotEmpty()) {
             val line = result.out[0].trim()

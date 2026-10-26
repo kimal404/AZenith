@@ -18,7 +18,6 @@
 
 package zx.azenith.ui.mainscreens
 
-import zx.azenith.ui.component.ZramSwapCard
 
 
 import android.app.Activity
@@ -358,13 +357,29 @@ fun TweakScreen(
             }
 
                         item {
-                Spacer(modifier = Modifier.height(8.dp))
-                JumpRow(activeId = jumpPulse, entryId = "tweaks.section_zram", highlightShape = RoundedCornerShape(14.dp)) {
-                    TweaksSectionTitle(text = "ZRAM & Swap Manager")
-                }
-            }
-            item {
-                ZramSwapCard()
+                ExpressiveList(
+                    content = listOf(
+                        {
+                            JumpRow(activeId = jumpPulse, entryId = "tweaks.zram") {
+                                ExpressiveListItem(
+                                    leadingContent = {
+                                        Icon(
+                                            imageVector = Icons.Default.Memory,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    onClick = {
+                                        navController.navigate("zramscreen")
+                                    },
+                                    headlineContent = { Text(text = "ZRAM & Swap Manager") },
+                                    supportingContent = { Text(text = "Pengaturan ukuran swap, algoritma, dan swappiness") },
+                                    trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
+                                )
+                            }
+                        }
+                    )
+                )
             }
 
             item { JumpRow(activeId = jumpPulse, entryId = "tweaks.section_additional", highlightShape = RoundedCornerShape(14.dp)) { TweaksSectionTitle(stringResource(R.string.section_additionalsettings)) } }

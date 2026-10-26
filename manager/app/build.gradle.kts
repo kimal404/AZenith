@@ -21,8 +21,8 @@ android {
         applicationId = "zx.azenith"
         minSdk = 29
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2297
+        versionName = "5.3 (2297-4c145537-Stellars-Beta)"
         vectorDrawables.useSupportLibrary = true
         buildConfigField("long", "BUILD_TIME", "${System.currentTimeMillis()}L")
         ndk {

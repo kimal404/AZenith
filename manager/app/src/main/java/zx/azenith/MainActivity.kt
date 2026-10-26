@@ -648,6 +648,11 @@ fun MainScreen(fromTileType: String? = null) {
                             LibrariesScreen(navController)
                         }
                     }
+                    composable("zramscreen") {
+                        zx.azenith.ui.component.ScreenWrapper(navController = navController, animatedVisibilityScope = this) {
+                            zx.azenith.ui.subscreens.ZramSettingsScreen(navController)
+                        }
+                    }
                     composable("fpsgoscreen") {
                         zx.azenith.ui.component.ScreenWrapper(navController = navController, animatedVisibilityScope = this) {
                             FpsGoSettings(navController)
