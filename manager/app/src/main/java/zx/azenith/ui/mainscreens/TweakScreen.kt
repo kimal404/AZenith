@@ -18,6 +18,8 @@
 
 package zx.azenith.ui.mainscreens
 
+import zx.azenith.ui.component.ZramSwapCard
+
 
 import android.app.Activity
 import android.content.Context
@@ -353,6 +355,16 @@ fun TweakScreen(
                 } else {
                     SectionLoadingIndicator()
                 }
+            }
+
+                        item {
+                Spacer(modifier = Modifier.height(8.dp))
+                JumpRow(activeId = jumpPulse, entryId = "tweaks.section_zram", highlightShape = RoundedCornerShape(14.dp)) {
+                    TweaksSectionTitle(text = "ZRAM & Swap Manager")
+                }
+            }
+            item {
+                ZramSwapCard()
             }
 
             item { JumpRow(activeId = jumpPulse, entryId = "tweaks.section_additional", highlightShape = RoundedCornerShape(14.dp)) { TweaksSectionTitle(stringResource(R.string.section_additionalsettings)) } }
