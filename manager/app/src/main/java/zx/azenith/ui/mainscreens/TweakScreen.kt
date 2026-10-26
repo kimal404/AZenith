@@ -356,32 +356,6 @@ fun TweakScreen(
                 }
             }
 
-                        item {
-                ExpressiveList(
-                    content = listOf(
-                        {
-                            JumpRow(activeId = jumpPulse, entryId = "tweaks.zram") {
-                                ExpressiveListItem(
-                                    leadingContent = {
-                                        Icon(
-                                            imageVector = Icons.Default.Memory,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    },
-                                    onClick = {
-                                        navController.navigate("zramscreen")
-                                    },
-                                    headlineContent = { Text(text = "ZRAM & Swap Manager") },
-                                    supportingContent = { Text(text = "Pengaturan ukuran swap, algoritma, dan swappiness") },
-                                    trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
-                                )
-                            }
-                        }
-                    )
-                )
-            }
-
             item { JumpRow(activeId = jumpPulse, entryId = "tweaks.section_additional", highlightShape = RoundedCornerShape(14.dp)) { TweaksSectionTitle(stringResource(R.string.section_additionalsettings)) } }
             item {
                 if (viewModel.preloadState != null && 
@@ -391,6 +365,19 @@ fun TweakScreen(
                     viewModel.fstrimState != null) {
                     ExpressiveList(
                         content = buildList {
+                            add {
+                                JumpRow(activeId = jumpPulse, entryId = "tweaks.zram") {
+                                    ExpressiveListItem(
+                                        leadingContent = { LeadingIcon(icon = Icons.Filled.Memory) },
+                                        onClick = {
+                                            navController.navigate("zramscreen")
+                                        },
+                                        headlineContent = { Text(text = "ZRAM & Swap Manager") },
+                                        supportingContent = { Text(text = "Pengaturan ukuran swap, algoritma, dan swappiness") },
+                                        trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
+                                    )
+                                }
+                            }
                             add {
                                 JumpRow(activeId = jumpPulse, entryId = "tweaks.game_preload") {
                                     ExpressiveSwitchItem(

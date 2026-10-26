@@ -19,25 +19,33 @@
 package zx.azenith.ui.subscreens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import zx.azenith.ui.component.ExpressiveList
 import zx.azenith.ui.component.ExpressiveListItem
 import zx.azenith.ui.component.ExpressiveSliderItem
+import zx.azenith.ui.component.LabeledSlider
+import zx.azenith.ui.component.LeadingIcon
 import zx.azenith.ui.navigation.safePopBackStack
 import zx.azenith.ui.util.ZramUtil
 
@@ -65,44 +73,89 @@ fun ZramSettingsScreen(navController: NavController) {
     }
 
     if (showAlgoDialog) {
-        AlertDialog(
-            onDismissRequest = { showAlgoDialog = false },
-            title = { Text(text = "Algoritma Kompresi") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    algorithms.forEach { algo ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedAlgo = algo
-                                    showAlgoDialog = false
+        Dialog(onDismissRequest = { showAlgoDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Pilih algoritma kompresi",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        algorithms.forEach { algo ->
+                            val isSelected = algo.equals(selectedAlgo, ignoreCase = true)
+                            val containerColor = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHigh
+                            }
+                            val contentColor = if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(containerColor)
+                                    .clickable {
+                                        selectedAlgo = algo
+                                        showAlgoDialog = false
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(
+                                            if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                                            else MaterialTheme.colorScheme.surfaceContainerHighest
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Memory,
+                                        contentDescription = null,
+                                        tint = contentColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
-                                .padding(vertical = 10.dp, horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = (algo == selectedAlgo),
-                                onClick = {
-                                    selectedAlgo = algo
-                                    showAlgoDialog = false
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(
+                                    text = algo,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = contentColor,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = null,
+                                        tint = contentColor,
+                                        modifier = Modifier.size(22.dp)
+                                    )
                                 }
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = algo,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            }
                         }
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showAlgoDialog = false }) {
-                    Text(text = "Tutup")
-                }
             }
-        )
+        }
     }
 
     Scaffold(
@@ -160,11 +213,7 @@ fun ZramSettingsScreen(navController: NavController) {
                             {
                                 ExpressiveListItem(
                                     leadingContent = {
-                                        Icon(
-                                            imageVector = Icons.Default.Memory,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
+                                        LeadingIcon(icon = Icons.Default.Memory)
                                     },
                                     onClick = {
                                         if (!isApplying && zramSize > 0f) {
@@ -182,18 +231,22 @@ fun ZramSettingsScreen(navController: NavController) {
                                 )
                             },
                             {
-                                ExpressiveSliderItem(
-                                    icon = Icons.Rounded.Speed,
-                                    title = "Kernel Swappiness",
-                                    subtitle = "Agresivitas kernel memindahkan memori aktif ke swap",
-                                    badgeText = "${swappiness.toInt()}",
-                                    sliderPosition = swappiness,
-                                    valueRange = 0f..200f,
-                                    steps = 199,
-                                    enabled = !isApplying,
-                                    onValueChange = { swappiness = it },
-                                    onValueChangeFinished = {}
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                                ) {
+                                    LabeledSlider(
+                                        icon = Icons.Rounded.Speed,
+                                        label = "Kernel Swappiness",
+                                        value = swappiness,
+                                        valueText = if (swappiness == 60f) "60 (Bawaan)" else "${swappiness.toInt()}",
+                                        valueRange = 0f..200f,
+                                        steps = 199,
+                                        resetDefault = 60f,
+                                        onValueChange = { swappiness = it }
+                                    )
+                                }
                             }
                         )
                     )
