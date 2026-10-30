@@ -1540,7 +1540,7 @@ class ZXSidePanelService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         fpsSamplerJob?.cancel()
         fpsSamplerJob = serviceScope.launch(Dispatchers.IO) {
             while (isActive) {
-                delay(1_000L)
+                delay(350L)
                 val pkg = activeGamePackage
                 if (pkg.isNullOrBlank()) {
                     panelState.currentFps = 0
@@ -2282,14 +2282,17 @@ private class ZXRealTelemetryCollector {
      * be stat'ed without su.
      */
     private fun readDaemonFps(cap: Int, rootGranted: Boolean): Int? {
-        val raw = readFileTextDirectOrSu("/data/adb/.config/AZenith/API/current_fps", rootGranted)
+        val directFile = File("/data/data/zx.azenith/cache/current_fps")
+        val raw = readFirstLineDirect(directFile)
+            ?: readFileTextDirectOrSu("/data/adb/.config/AZenith/API/current_fps", rootGranted)
             ?: return null
         val f = raw.trim().split(Regex("\\s+"))
         if (f.size < 2) return null
         val fps = f[0].toIntOrNull() ?: return null
         val at = f[1].toLongOrNull() ?: return null
-        if (System.currentTimeMillis() - at > 3_000L) return null
-        return fps.coerceIn(1, cap)
+        if (System.currentTimeMillis() - at > 2_000L) return 0
+        if (fps <= 0) return 0
+        return fps.coerceIn(0, cap)
     }
 
     private fun readFirstLineDirect(file: File): String? {

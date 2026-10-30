@@ -23,16 +23,12 @@ import java.util.concurrent.Executors
 /**
  * Mirrors SurfaceFlinger's own fps report for the focused task into a file, so the manager shows
  * the real presented frame rate instead of deriving one from `dumpsys SurfaceFlinger --latency`.
- *
- * This only works from a root process: WindowManagerService.registerTaskFpsCallback demands
- * ACCESS_FPS_COUNTER (signature|privileged) and AMS grants every permission to uid 0, while
- * SurfaceFlinger's own check sees system_server on the far side of the call. Everything past that
- * is the framework's job - the task id, the transaction code and the FrameTimeline maths.
  */
 object FpsClient {
     private const val DEFAULT_OUT = "/data/adb/.config/AZenith/API/current_fps"
+    private const val DIRECT_OUT = "/data/data/zx.azenith/cache/current_fps"
     private const val POLL_MS = 500L
-    private const val STALE_MS = 5000L
+    private const val STALE_MS = 2000L
     private const val CB_DESCRIPTOR = "android.window.ITaskFpsCallback"
 
     @JvmStatic
@@ -119,50 +115,42 @@ object FpsClient {
 
         while (true) {
             val taskId = focusedRootTaskId()
-            if (taskId != state.taskId) {
-                // A callback may only ever be registered for one task, and re-registering the
-                // same object with a new id is silently ignored, so drop it before adding one.
+            // Kunci callback: Jangan lepas jika taskId null (saat overlay Game Space disentuh)
+            if (taskId != null && taskId != state.taskId) {
                 state.callback?.let { cb -> runCatching { unregister.invoke(wm, cb) } }
                 state.callback = null
                 state.taskId = taskId
-                if (taskId == null) {
-                    System.err.println("fps: no focused task")
-                } else {
-                    val err = if (register.parameterTypes.size == 2 && iTaskFpsCallback != null) {
-                        // The Proxy only satisfies the Java type; the framework marshals the
-                        // callback through asBinder(), so that has to be a real Binder that
-                        // actually receives onFpsReported transactions.
-                        val binder = FpsBinder(state)
-                        val cb = java.lang.reflect.Proxy.newProxyInstance(
-                            iTaskFpsCallback.classLoader,
-                            arrayOf(iTaskFpsCallback)
-                        ) { proxy, method, margs ->
-                            when (method.name) {
-                                "asBinder" -> binder
-                                "onFpsReported" -> {
-                                    (margs?.firstOrNull() as? Number)?.let { state.publish(it.toFloat()) }
-                                    null
-                                }
-                                "hashCode" -> System.identityHashCode(proxy)
-                                "equals" -> proxy === margs?.firstOrNull()
-                                "toString" -> "FpsCb"
-                                else -> null
+                
+                val err = if (register.parameterTypes.size == 2 && iTaskFpsCallback != null) {
+                    val binder = FpsBinder(state)
+                    val cb = java.lang.reflect.Proxy.newProxyInstance(
+                        iTaskFpsCallback.classLoader,
+                        arrayOf(iTaskFpsCallback)
+                    ) { proxy, method, margs ->
+                        when (method.name) {
+                            "asBinder" -> binder
+                            "onFpsReported" -> {
+                                (margs?.firstOrNull() as? Number)?.let { state.publish(it.toFloat()) }
+                                null
                             }
-                        }
-                        runCatching { register.invoke(wm, taskId, cb) }.exceptionOrNull().also {
-                            if (it == null) state.callback = cb
-                        }
-                    } else {
-                        val cb = Callback(state)
-                        runCatching { register.invoke(wm, taskId, executor, cb) }.exceptionOrNull().also {
-                            if (it == null) state.callback = cb
+                            "hashCode" -> System.identityHashCode(proxy)
+                            "equals" -> proxy === margs?.firstOrNull()
+                            "toString" -> "FpsCb"
+                            else -> null
                         }
                     }
-                    if (err != null) {
-                        System.err.println("fps: register task=$taskId failed: $err")
-                        // Forget the id so the next poll retries instead of waiting for a task switch.
-                        state.taskId = null
+                    runCatching { register.invoke(wm, taskId, cb) }.exceptionOrNull().also {
+                        if (it == null) state.callback = cb
                     }
+                } else {
+                    val cb = Callback(state)
+                    runCatching { register.invoke(wm, taskId, executor, cb) }.exceptionOrNull().also {
+                        if (it == null) state.callback = cb
+                    }
+                }
+                if (err != null) {
+                    System.err.println("fps: register task=$taskId failed: $err")
+                    state.taskId = null
                 }
             }
             state.flushIfStale()
@@ -187,7 +175,6 @@ object FpsClient {
         target.javaClass.getMethod(name).invoke(target) as? Int
     }.getOrNull()
 
-    /** Real Binder for ITaskFpsCallback: onFpsReported(float) is the first (only) transaction. */
     private class FpsBinder(private val state: State) : android.os.Binder() {
         override fun onTransact(code: Int, data: android.os.Parcel, reply: android.os.Parcel?, flags: Int): Boolean =
             when (code) {
@@ -207,7 +194,6 @@ object FpsClient {
     private class State(private val out: File) {
         @Volatile var taskId: Int? = null
         @Volatile var callback: Any? = null
-
         private val lock = Object()
         private var last = 0L
 
@@ -227,21 +213,22 @@ object FpsClient {
             }
         }
 
-        // "<fps> <epoch_ms>": the manager needs the stamp to tell a live reading from a frozen
-        // one, and it cannot stat the file itself because /data/adb is root-only.
         private fun write(value: Float) {
             val text = "${value.toInt()} ${System.currentTimeMillis()}\n"
-            val tmp = File("$out.${System.nanoTime()}.tmp")
+            // Tulis ke root path (kompatibilitas backward)
             runCatching {
                 out.parentFile?.mkdirs()
-                tmp.writeText(text)
-                tmp.setReadable(true, false)
-                if (!tmp.renameTo(out)) {
-                    out.writeText(text)
-                    out.setReadable(true, false)
-                    tmp.delete()
-                }
+                out.writeText(text)
+                out.setReadable(true, false)
             }.onFailure { System.err.println("fps: write $out failed: $it") }
+
+            // Tulis ke direktori cache yang bisa dibaca Game Space langsung tanpa 'su'
+            runCatching {
+                val direct = File(DIRECT_OUT)
+                direct.parentFile?.mkdirs()
+                direct.writeText(text)
+                direct.setReadable(true, false)
+            }
         }
     }
 

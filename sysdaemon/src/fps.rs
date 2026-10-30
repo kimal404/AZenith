@@ -53,7 +53,7 @@ const METHOD_FLAG: &str = "/data/adb/.config/AZenith/debug/explicit_fps_mthd";
 
 /// A source has to publish a reading within this window, otherwise it counts as broken and the
 /// fallback takes over.
-const CLIENT_STARTUP_TIMEOUT: Duration = Duration::from_secs(15);
+const CLIENT_STARTUP_TIMEOUT: Duration = Duration::from_secs(4);
 /// Pause before a source is started again after an ordinary exit.
 const RETRY_DELAY: Duration = Duration::from_secs(5);
 /// Poll cadence for the child process.
@@ -61,7 +61,7 @@ const POLL_INTERVAL: Duration = Duration::from_millis(500);
 /// Re-read the pin at most this often while a source is running.
 const FLAG_CHECK_INTERVAL: Duration = Duration::from_secs(5);
 /// Publish interval of the polling sources. The manager treats a stamp older than 3 s as 0.
-const SF_INTERVAL: Duration = Duration::from_secs(1);
+const SF_INTERVAL: Duration = Duration::from_millis(500);
 /// Consecutive unusable `dumpsys` results before the source is declared dead.
 const SF_MAX_MISSES: u32 = 5;
 /// Line prefix of SurfaceFlinger's cumulative frame counter.
